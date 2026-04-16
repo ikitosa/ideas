@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>1dea — Журнал мыслей</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #111; min-height: 100vh; }
+.screen { display: none; max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.screen.active { display: block; }
+
+/* Setup screen */
+.setup-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+.setup-card h2 { font-size: 20px; font-weight: 500; margin-bottom: 6px; }
+.setup-card p { font-size: 13px; color: #888; margin-bottom: 1.25rem; line-height: 1.5; }
+.field-label { font-size: 12px; color: #666; margin-bottom: 4px; display: block; }
+.setup-card input { width: 100%; padding: 9px 12px; font-size: 14px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; outline: none; font-family: monospace; }
+.setup-card input:focus { border-color: #1a56db; }
+.save-btn { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 8px; border: none; background: #1a56db; color: #fff; }
+.save-btn:hover { background: #1447b8; }
+.hint { font-size: 12px; color: #aaa; margin-top: 8px; text-align: center; }
+
+/* Main app */
+.app-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.app-header h1 { font-size: 20px; font-weight: 500; }
+.settings-link { font-size: 12px; color: #aaa; cursor: pointer; padding: 4px 8px; border-radius: 6px; border: 1px solid #e5e5e5; background: #fff; }
+.sub { font-size: 13px; color: #888; margin-bottom: 1.25rem; }
+.card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+textarea { width: 100%; min-height: 80px; resize: vertical; font-size: 14px; border: none; outline: none; background: transparent; font-family: inherit; line-height: 1.6; color: #111; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.tag-btn { font-size: 12px; padding: 4px 10px; border-radius: 8px; border: 1px solid #ddd; background: transparent; cursor: pointer; color: #666; transition: all 0.15s; }
+.tag-btn.active { background: #e8f0fe; color: #1a56db; border-color: #a4c0fb; }
+.add-btn { width: 100%; padding: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 8px; border: 1px solid #ddd; background: transparent; transition: all 0.15s; }
+.add-btn:hover { background: #f5f5f5; }
+.add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.digest-btn { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; cursor: pointer; margin-bottom: 1.25rem; border-radius: 8px; border: 1px solid #a4c0fb; background: #e8f0fe; color: #1a56db; transition: all 0.15s; }
+.digest-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.entries-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.entries-label { font-size: 13px; color: #888; }
+.clear-btn { font-size: 12px; padding: 3px 8px; border-radius: 8px; border: 1px solid #ddd; background: transparent; color: #888; cursor: pointer; }
+.entry { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 8px; position: relative; }
+.entry-meta { display: flex; gap: 8px; margin-bottom: 6px; align-items: center; }
+.entry-tag { font-size: 11px; padding: 2px 8px; border-radius: 8px; background: #f0f0f0; color: #555; }
+.entry-time { font-size: 11px; color: #aaa; }
+.entry-text { font-size: 14px; line-height: 1.5; word-break: break-word; }
+.del-btn { position: absolute; top: 8px; right: 10px; background: none; border: none; font-size: 16px; cursor: pointer; color: #ccc; }
+.del-btn:hover { color: #e00; }
+.digest-card { background: #f9f9f9; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
+.digest-card h3 { font-size: 15px; font-weight: 500; margin-bottom: 10px; }
+.digest-content { font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
+.empty { text-align: center; padding: 2rem; color: #aaa; font-size: 14px; }
+.error-msg { font-size: 13px; color: #c00; background: #fff0f0; border: 1px solid #fcc; border-radius: 8px; padding: 10px 14px; margin-bottom: 1rem; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #ccc; border-top-color: #1a56db; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- Setup screen -->
+<div class="screen active" id="screen-setup">
+  <div class="setup-card">
+    <h2>Настройка хранилища</h2>
+    <p>Введи данные Airtable один раз — записи будут сохраняться на сервере и не пропадут при смене устройства.</p>
+    <label class="field-label">Airtable Personal Access Token</label>
+    <input type="password" id="setup-token" placeholder="patXXXXXXXXXX.XXXXXXXXX" />
+    <label class="field-label">Base ID</label>
+    <input type="text" id="setup-base" placeholder="appXXXXXXXXXX" />
+    <label class="field-label">Table ID</label>
+    <input type="text" id="setup-table" placeholder="tblXXXXXXXXXX" />
+    <button class="save-btn" onclick="saveSetup()">Сохранить и войти</button>
+    <div class="hint">Данные хранятся только в твоём браузере</div>
+  </div>
+</div>
+
+<!-- Main app screen -->
+<div class="screen" id="screen-app">
+  <div class="app-header">
+    <h1>1dea</h1>
+    <button class="settings-link" onclick="openSettings()">⚙ Настройки</button>
+  </div>
+  <div class="sub" id="entry-count">Загрузка...</div>
+
+  <div class="card">
+    <textarea id="thought-input" placeholder="Мысль, идея, задача... записывай как есть"></textarea>
+    <div class="tags" id="tags">
+      <button class="tag-btn active" data-tag="💡 Идея">💡 Идея</button>
+      <button class="tag-btn" data-tag="🎯 Цель">🎯 Цель</button>
+      <button class="tag-btn" data-tag="⚡ Срочно">⚡ Срочно</button>
+      <button class="tag-btn" data-tag="🧠 Инсайт">🧠 Инсайт</button>
+      <button class="tag-btn" data-tag="📈 Продажи">📈 Продажи</button>
+      <button class="tag-btn" data-tag="🤖 Агентство">🤖 Агентство</button>
+      <button class="tag-btn" data-tag="👤 Личное">👤 Личное</button>
+      <button class="tag-btn" data-tag="❓ Вопрос">❓ Вопрос</button>
+    </div>
+    <button class="add-btn" id="add-btn" onclick="addEntry()">+ Записать мысль</button>
+  </div>
+
+  <button class="digest-btn" id="digest-btn" onclick="generateDigest()">✨ Утренний дайджест — AI анализ всех записей</button>
+
+  <div id="error-area"></div>
+  <div id="digest-area"></div>
+
+  <div class="entries-header">
+    <span class="entries-label" id="entries-label">Записи</span>
+    <button class="clear-btn" onclick="clearAll()">Очистить всё</button>
+  </div>
+  <div id="entries-list"></div>
+</div>
+
+<script>
+const TABLE = '1dea';
+let selectedTag = '💡 Идея';
+let entries = [];
+let cfg = {};
+
+function loadConfig() {
+  try { cfg = JSON.parse(localStorage.getItem('1dea-config') || '{}'); } catch(e) { cfg = {}; }
+}
+
+function saveSetup() {
+  const token = document.getElementById('setup-token').value.trim();
+  const base = document.getElementById('setup-base').value.trim();
+  const table = document.getElementById('setup-table').value.trim();
+  if (!token || !base || !table) { alert('Заполни все поля'); return; }
+  cfg = { token, base, table };
+  localStorage.setItem('1dea-config', JSON.stringify(cfg));
+  showApp();
+}
+
+function openSettings() {
+  document.getElementById('setup-token').value = cfg.token || '';
+  document.getElementById('setup-base').value = cfg.base || '';
+  document.getElementById('setup-table').value = cfg.table || '';
+  document.getElementById('screen-app').classList.remove('active');
+  document.getElementById('screen-setup').classList.add('active');
+}
+
+function showApp() {
+  document.getElementById('screen-setup').classList.remove('active');
+  document.getElementById('screen-app').classList.add('active');
+  loadEntries();
+}
+
+function showError(msg) {
+  document.getElementById('error-area').innerHTML = `<div class="error-msg">${msg}</div>`;
+  setTimeout(() => document.getElementById('error-area').innerHTML = '', 5000);
+}
+
+// Airtable API
+function atHeaders() {
+  return { 'Authorization': `Bearer ${cfg.token}`, 'Content-Type': 'application/json' };
+}
+function atUrl(params) {
+  return `https://api.airtable.com/v0/${cfg.base}/${cfg.table}${params || ''}`;
+}
+
+async function loadEntries() {
+  document.getElementById('entry-count').textContent = 'Загрузка...';
+  try {
+    const resp = await fetch(atUrl('?sort%5B0%5D%5Bfield%5D=CreatedAt&sort%5B0%5D%5Bdirection%5D=desc&maxRecords=100'), { headers: atHeaders() });
+    if (!resp.ok) throw new Error(`Airtable error ${resp.status}`);
+    const data = await resp.json();
+    entries = data.records || [];
+    render();
+  } catch(e) {
+    showError('Ошибка загрузки: ' + e.message);
+    document.getElementById('entry-count').textContent = 'Ошибка загрузки';
+  }
+}
+
+async function addEntry() {
+  const text = document.getElementById('thought-input').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Сохраняю...';
+  try {
+    const resp = await fetch(atUrl(), {
+      method: 'POST',
+      headers: atHeaders(),
+      body: JSON.stringify({ fields: { Text: text, Tag: selectedTag, CreatedAt: new Date().toISOString() } })
+    });
+    if (!resp.ok) throw new Error(`Airtable error ${resp.status}`);
+    document.getElementById('thought-input').value = '';
+    await loadEntries();
+  } catch(e) {
+    showError('Ошибка сохранения: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '+ Записать мысль';
+}
+
+async function deleteEntry(id) {
+  try {
+    await fetch(atUrl('/' + id), { method: 'DELETE', headers: atHeaders() });
+    await loadEntries();
+  } catch(e) { showError('Ошибка удаления'); }
+}
+
+async function clearAll() {
+  if (!entries.length) return;
+  if (!confirm(`Удалить все ${entries.length} записей?`)) return;
+  try {
+    for (const r of entries) {
+      await fetch(atUrl('/' + r.id), { method: 'DELETE', headers: atHeaders() });
+    }
+    await loadEntries();
+    document.getElementById('digest-area').innerHTML = '';
+  } catch(e) { showError('Ошибка очистки'); }
+}
+
+function fmt(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('ru-RU', {day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'});
+}
+
+function render() {
+  const n = entries.length;
+  document.getElementById('entry-count').textContent = n ? `${n} запис${n===1?'ь':n<5?'и':'ей'} сохранено в Airtable` : 'Нет записей';
+  document.getElementById('entries-label').textContent = n ? `Все записи (${n})` : 'Записи';
+  const list = document.getElementById('entries-list');
+  if (!n) { list.innerHTML = '<div class="empty">Пока пусто — напиши первую мысль</div>'; return; }
+  list.innerHTML = entries.map(e => `
+    <div class="entry">
+      <div class="entry-meta">
+        <span class="entry-tag">${(e.fields.Tag||'—')}</span>
+        <span class="entry-time">${fmt(e.fields.CreatedAt)}</span>
+      </div>
+      <div class="entry-text">${(e.fields.Text||'').replace(/</g,'&lt;')}</div>
+      <button class="del-btn" onclick="deleteEntry('${e.id}')">×</button>
+    </div>
+  `).join('');
+}
+
+document.getElementById('tags').addEventListener('click', e => {
+  if (!e.target.matches('.tag-btn')) return;
+  document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  selectedTag = e.target.dataset.tag;
+});
+
+async function generateDigest() {
+  if (!entries.length) { alert('Нет записей для анализа'); return; }
+  const btn = document.getElementById('digest-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Анализирую...';
+  const area = document.getElementById('digest-area');
+  area.innerHTML = '';
+
+  const entriesText = entries.map(e => `[${e.fields.Tag||'—'}] ${fmt(e.fields.CreatedAt)}: ${e.fields.Text||''}`).join('\n');
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'Ты личный AI-ассистент Андрея — заместителя коммерческого директора (ООО ЛАЗЕРТАГ, ООО КИБЕРТАГ) и основателя AI-автоматизационного агентства. Отвечай на русском. Будь конкретен.',
+        messages: [{ role: 'user', content: `Мои записи:\n${entriesText}\n\nДай дайджест:\n📊 КАРТИНА В ЦЕЛОМ\n🔥 ТОП-3 ПРИОРИТЕТА\n💡 ИНСАЙТЫ\n🎯 РЕКОМЕНДАЦИИ\n❓ ОТКРЫТЫЕ ВОПРОСЫ` }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content?.map(b => b.text||'').join('') || 'Ошибка';
+    area.innerHTML = `<div class="digest-card"><h3>Дайджест — ${new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'long'})}</h3><div class="digest-content">${text.replace(/</g,'&lt;')}</div></div>`;
+  } catch(e) {
+    showError('Ошибка дайджеста: ' + e.message);
+  }
+  btn.disabled = false;
+  btn.textContent = '✨ Утренний дайджест — AI анализ всех записей';
+}
+
+// Init
+loadConfig();
+if (cfg.token && cfg.base) { showApp(); }
+else { document.getElementById('screen-setup').classList.add('active'); }
+</script>
+</body>
+</html>
